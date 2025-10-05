@@ -30,21 +30,22 @@ async def main(plate: int = 1):
     Feed at most 10 minutes for the past hour (at most 1/6 of the whole day) to keep the food fresh
     """
 
-    # stop feeding first to ensure that the reference image plate is closed
-    try:
-        await feeder.stop_feed_now()
-    except Exception as e:
-        _LOGGER.error(
-            "Failed initial stop feeding at "
-            + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        )
-        _LOGGER.error(e)
-    await asyncio.sleep(3)
+    async with aiohttp.ClientSession() as session:
+        feeder = WetFoodFeeder(session)
+        await feeder.login()
 
-    with MotionDetector() as detector:
-        async with aiohttp.ClientSession() as session:
-            feeder = WetFoodFeeder(session)
-            await feeder.login()
+        # stop feeding first to ensure that the reference image plate is closed
+        try:
+            await feeder.stop_feed_now()
+        except Exception as e:
+            _LOGGER.error(
+                "Failed initial stop feeding at "
+                + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+            _LOGGER.error(e)
+        await asyncio.sleep(3)
+
+        with MotionDetector() as detector:
 
             is_feeding = False
             past_hour_feeds: list[bool] = [False] * 3600
