@@ -29,22 +29,35 @@ async def main(plate: int = 1):
     when motion is detected, feed until the motion is gone
     Feed at most 10 minutes for the past hour (at most 1/6 of the whole day) to keep the food fresh
     """
+
+    # stop feeding first to ensure that the reference image plate is closed
+    try:
+        await feeder.stop_feed_now()
+    except Exception as e:
+        _LOGGER.error(
+            "Failed initial stop feeding at "
+            + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+        _LOGGER.error(e)
+    await asyncio.sleep(3)
+
     with MotionDetector() as detector:
         async with aiohttp.ClientSession() as session:
             feeder = WetFoodFeeder(session)
             await feeder.login()
 
             is_feeding = False
-            past_hour_feeds: list[bool] = [False] * 60
+            past_hour_feeds: list[bool] = [False] * 3600
             while True:
                 await asyncio.sleep(1)
 
                 past_hour_feeds.append(is_feeding)
-                while len(past_hour_feeds) > 60:
+                while len(past_hour_feeds) > 3600:
                     past_hour_feeds.pop(0)
 
                 first_no_motion: datetime | None = None
                 if detector.is_motion_detected:
+                    first_no_motion = None
                     if not is_feeding:
                         _LOGGER.info(
                             "Start feeding at "
@@ -59,8 +72,8 @@ async def main(plate: int = 1):
                             )
                             _LOGGER.error(e)
                         is_feeding = True
-                    # feeding too long: preserve freshness instead of feeding for too long
-                    elif sum(past_hour_feeds) > 10:
+                    # feeding too long: preserve freshness instead of feeding for too long (>10min)
+                    elif sum(past_hour_feeds) > 10 * 60:
                         is_feeding = False
                         _LOGGER.info(
                             "Stop feeding because it has been feeding for too long at "
