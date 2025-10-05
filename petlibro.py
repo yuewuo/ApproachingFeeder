@@ -22,15 +22,9 @@ from aiohttp import ClientSession, ClientError
 
 import aiohttp
 import uuid  # To generate unique request IDs
-import os
-import logging
-import sys
+
 
 # mypy: ignore-errors
-
-if "DEBUG" in os.environ:
-
-    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 async def make_api_call(session, url, data):

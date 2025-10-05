@@ -3,11 +3,18 @@ from petlibro import PetLibroAPI
 import asyncio
 import aiohttp
 from functools import cached_property
+import os
+import logging
+import sys
+
+if "DEBUG" in os.environ:
+
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 async def main():
     # await test_login()
-    # await test_feed_now(plate=2)
+    # await test_feed_now(plate=1)
     await test_stop_feed_now()
 
 
