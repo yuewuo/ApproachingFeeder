@@ -139,23 +139,21 @@ class MotionDetector:
 
             gray_frame = self.gray_frame_of(frame)
 
-            if not self.is_motion_detected:
-                reference_window.append((time.time(), gray_frame))
-
             if len(reference_window) < 10:
                 if self.writer_hourly is not None:
                     self.writer_hourly.write(frame)
+                reference_window.append((time.time(), gray_frame))
                 continue  # need to accumulate more frames before we start to do some processing
-            while len(reference_window) > 11:
+            while len(reference_window) > 10:
                 reference_window.pop(0)  # remove the oldest frame
 
             # calculate the average of the reference window
             height, width = gray_frame.shape
             average_reference = np.zeros((height, width), dtype=np.float32)
             # excluding the current frame because it might contain motion
-            for history_gray_frame in reference_window[:-1]:
+            for history_gray_frame in reference_window:
                 average_reference += history_gray_frame[1].astype(np.float32)
-            average_reference /= len(reference_window) - 1
+            average_reference /= len(reference_window)
             gray_reference = average_reference.astype(np.uint8)
 
             frame_diff = cv2.absdiff(gray_reference, gray_frame)
@@ -168,7 +166,8 @@ class MotionDetector:
 
             is_motion_detected = False
             for contour in contours:
-                if cv2.contourArea(contour) < 0.005 * frame.shape[0] * frame.shape[1]:
+                # the number 0.015 is calculated based on the size of the plate (~0.011)
+                if cv2.contourArea(contour) < 0.015 * frame.shape[0] * frame.shape[1]:
                     continue
                 (x, y, w, h) = cv2.boundingRect(contour)
                 if not self.is_motion_detected and not is_motion_detected:
@@ -186,6 +185,9 @@ class MotionDetector:
                 )
                 self.stop_recording_original()
             self.is_motion_detected = is_motion_detected
+
+            if not self.is_motion_detected:
+                reference_window.append((time.time(), gray_frame))
 
             if (
                 motion_start_time is not None

@@ -49,6 +49,7 @@ async def main(plate: int = 1):
 
             is_feeding = False
             past_hour_feeds: list[bool] = [False] * 3600
+            first_no_motion: datetime | None = None
             while True:
                 await asyncio.sleep(1)
 
@@ -56,7 +57,6 @@ async def main(plate: int = 1):
                 while len(past_hour_feeds) > 3600:
                     past_hour_feeds.pop(0)
 
-                first_no_motion: datetime | None = None
                 if detector.is_motion_detected:
                     first_no_motion = None
                     if not is_feeding:
@@ -92,10 +92,15 @@ async def main(plate: int = 1):
                     if is_feeding:
                         if first_no_motion is None:
                             first_no_motion = datetime.now()
+                            _LOGGER.info(
+                                "First no motion at "
+                                + first_no_motion.strftime("%Y-%m-%d %H:%M:%S")
+                            )
 
                         # delay closing the plate for 30 seconds so that Momo gets enough time to eat
                         if datetime.now() - first_no_motion > timedelta(seconds=30):
                             is_feeding = False
+                            first_no_motion = None
                             _LOGGER.info(
                                 "Stop feeding at "
                                 + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -104,7 +109,6 @@ async def main(plate: int = 1):
                                 await feeder.stop_feed_now()
                             except Exception as e:
                                 _LOGGER.error(e)
-                            first_no_motion = None
 
 
 if __name__ == "__main__":
