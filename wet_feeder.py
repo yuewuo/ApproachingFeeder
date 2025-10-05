@@ -1,6 +1,7 @@
 import json
 from petlibro import PetLibroAPI
 import asyncio
+import arguably
 import aiohttp
 from functools import cached_property
 import os
@@ -11,29 +12,27 @@ if "DEBUG" in os.environ:
 
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
+if __name__ == "__main__":
 
-async def main():
-    # await test_login()
-    # await test_feed_now(plate=1)
-    await test_stop_feed_now()
+    @arguably.command
+    def feed(plate: int = 1):
+        async def _feed(plate: int = 1):
+            async with aiohttp.ClientSession() as session:
+                feeder = WetFoodFeeder(session)
+                await feeder.login()
+                await feeder.manual_feed_now(plate)
 
+        asyncio.run(_feed(plate=plate))
 
-async def test_login():
-    async with aiohttp.ClientSession() as session:
-        feeder = WetFoodFeeder(session)
-        print(await feeder.deviceSn)
+    @arguably.command
+    def close():
+        async def _close():
+            async with aiohttp.ClientSession() as session:
+                feeder = WetFoodFeeder(session)
+                await feeder.login()
+                await feeder.stop_feed_now()
 
-
-async def test_feed_now(plate: int = 1):
-    async with aiohttp.ClientSession() as session:
-        feeder = WetFoodFeeder(session)
-        await feeder.manual_feed_now(plate)
-
-
-async def test_stop_feed_now():
-    async with aiohttp.ClientSession() as session:
-        feeder = WetFoodFeeder(session)
-        await feeder.stop_feed_now()
+        asyncio.run(_close())
 
 
 class WetFoodFeeder:
@@ -52,29 +51,20 @@ class WetFoodFeeder:
             region="US",
         )
 
-    @cached_property
-    async def devices(self) -> list:
-        devices = await self.api.list_devices()
-        assert len(devices) > 0, "No devices found"
-        return devices
-
-    @cached_property
-    async def device(self) -> dict:
-        device = find_wet_feeder(await self.devices)
-        assert device["online"], "Device is offline"
-        return device
-
-    @cached_property
-    async def deviceSn(self) -> str:
-        return (await self.device)["deviceSn"]
+    async def login(self) -> None:
+        self.devices = await self.api.list_devices()
+        assert len(self.devices) > 0, "No devices found"
+        self.device = find_wet_feeder(self.devices)
+        assert self.device["online"], "Device is offline"
+        self.deviceSn = self.device["deviceSn"]
 
     async def manual_feed_now(self, plate: int = 1) -> None:
-        deviceSn = await self.deviceSn
-        await self.api.set_manual_feed_now(deviceSn, plate)
+        assert hasattr(self, "deviceSn"), "please call `login` first"
+        await self.api.set_manual_feed_now(self.deviceSn, plate)
 
     async def stop_feed_now(self) -> None:
-        deviceSn = await self.deviceSn
-        await self.api.set_stop_feed_now(deviceSn, 1)
+        assert hasattr(self, "deviceSn"), "please call `login` first"
+        await self.api.set_stop_feed_now(self.deviceSn, 1)
 
 
 def find_wet_feeder(devices: list) -> dict:
@@ -85,4 +75,4 @@ def find_wet_feeder(devices: list) -> dict:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    arguably.run()
