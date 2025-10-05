@@ -180,6 +180,7 @@ class MotionDetector:
                 is_motion_detected = True
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             if not is_motion_detected and self.is_motion_detected:
+                motion_start_time = None
                 _LOGGER.debug(
                     "Motion ended at " + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 )
@@ -193,6 +194,10 @@ class MotionDetector:
                 motion_start_time is not None
                 and datetime.now() - motion_start_time > timedelta(minutes=20)
             ):
+                _LOGGER.debug(
+                    "Motion soft reboot at "
+                    + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                )
                 motion_start_time = None
                 self.is_motion_detected = False
                 reference_window.clear()  # soft reboot

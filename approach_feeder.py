@@ -28,6 +28,7 @@ async def main(plate: int = 1):
     """
     when motion is detected, feed until the motion is gone
     Feed at most 10 minutes for the past hour (at most 1/6 of the whole day) to keep the food fresh
+    Feed at most 10 times in the past hour: if more than that, it's probably unnecessarily
     """
 
     async with aiohttp.ClientSession() as session:
@@ -49,21 +50,27 @@ async def main(plate: int = 1):
 
             is_feeding = False
             past_hour_feeds: list[bool] = [False] * 3600
+            past_hour_starts: list[bool] = [False] * 3600
             first_no_motion: datetime | None = None
             while True:
                 await asyncio.sleep(1)
 
                 past_hour_feeds.append(is_feeding)
+                past_hour_starts.append(False)
                 while len(past_hour_feeds) > 3600:
                     past_hour_feeds.pop(0)
+                while len(past_hour_starts) > 3600:
+                    past_hour_starts.pop(0)
 
                 if detector.is_motion_detected:
                     first_no_motion = None
-                    if not is_feeding:
+                    # feed at most 10 times in the past hour: if more than that, it's probably unnecessarily
+                    if not is_feeding and sum(past_hour_starts) < 10:
                         _LOGGER.info(
                             "Start feeding at "
                             + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         )
+                        past_hour_starts[-1] = True  # mark the last one as True
                         try:
                             await feeder.manual_feed_now(plate)
                         except Exception as e:
@@ -74,7 +81,7 @@ async def main(plate: int = 1):
                             _LOGGER.error(e)
                         is_feeding = True
                     # feeding too long: preserve freshness instead of feeding for too long (>10min)
-                    elif sum(past_hour_feeds) > 10 * 60:
+                    elif is_feeding and sum(past_hour_feeds) > 10 * 60:
                         is_feeding = False
                         _LOGGER.info(
                             "Stop feeding because it has been feeding for too long at "
