@@ -3,17 +3,24 @@ from wet_feeder import WetFoodFeeder
 import asyncio
 import aiohttp
 import arguably
-from datetime import datetime
+from datetime import datetime, timedelta
 from logging import getLogger
+import logging
 
 # TODO: in the future, automatically detect if there are still food in the plate and select the appropriate plate among 3
+
+logging.basicConfig(
+    filename="approach_feeder.log",
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 
 _LOGGER = getLogger(__name__)
 
 
 @arguably.command
-def run_main(plate: int = 1):
+def run_main(*, plate: int = 1):
     asyncio.run(main(plate=plate))
 
 
@@ -36,6 +43,7 @@ async def main(plate: int = 1):
                 while len(past_hour_feeds) > 60:
                     past_hour_feeds.pop(0)
 
+                first_no_motion: datetime | None = None
                 if detector.is_motion_detected:
                     if not is_feeding:
                         _LOGGER.info(
@@ -68,15 +76,21 @@ async def main(plate: int = 1):
                             _LOGGER.error(e)
                 else:
                     if is_feeding:
-                        is_feeding = False
-                        _LOGGER.info(
-                            "Stop feeding at "
-                            + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        )
-                        try:
-                            await feeder.stop_feed_now()
-                        except Exception as e:
-                            _LOGGER.error(e)
+                        if first_no_motion is None:
+                            first_no_motion = datetime.now()
+
+                        # delay closing the plate for 30 seconds so that Momo gets enough time to eat
+                        if datetime.now() - first_no_motion > timedelta(seconds=30):
+                            is_feeding = False
+                            _LOGGER.info(
+                                "Stop feeding at "
+                                + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            )
+                            try:
+                                await feeder.stop_feed_now()
+                            except Exception as e:
+                                _LOGGER.error(e)
+                            first_no_motion = None
 
 
 if __name__ == "__main__":

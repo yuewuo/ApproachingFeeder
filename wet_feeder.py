@@ -15,7 +15,7 @@ if "DEBUG" in os.environ:
 if __name__ == "__main__":
 
     @arguably.command
-    def feed(plate: int = 1):
+    def feed(*, plate: int = 1):
         async def _feed(plate: int = 1):
             async with aiohttp.ClientSession() as session:
                 feeder = WetFoodFeeder(session)
