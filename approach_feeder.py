@@ -1,5 +1,6 @@
-from motion_detector import MotionDetector
+from motion_detector import MotionDetector, this_dir
 from wet_feeder import WetFoodFeeder
+from auto_deleter import AutoDeleter
 import asyncio
 import aiohttp
 import arguably
@@ -20,11 +21,17 @@ _LOGGER = getLogger(__name__)
 
 
 @arguably.command
-def run_main(*, plate: int = 1):
-    asyncio.run(main(plate=plate))
+def run_main(*, plate: int = 1, hourly_max_GB: float = 20, original_max_GB: float = 20):
+    asyncio.run(
+        main(
+            plate=plate,
+            hourly_max_GB=hourly_max_GB,
+            original_max_GB=original_max_GB,
+        )
+    )
 
 
-async def main(plate: int = 1):
+async def main(plate: int, hourly_max_GB: float, original_max_GB: float):
     """
     when motion is detected, feed until the motion is gone
     Feed at most 10 minutes for the past hour (at most 1/6 of the whole day) to keep the food fresh
@@ -52,7 +59,23 @@ async def main(plate: int = 1):
             past_hour_feeds: list[bool] = [False] * 3600
             past_hour_starts: list[bool] = [False] * 3600
             first_no_motion: datetime | None = None
+
+            hourly_deleter = AutoDeleter(
+                folder=this_dir / "recordings",
+                file_prefix="hourly_",
+                file_suffix=".mp4",
+                size_limit=hourly_max_GB * 1024 * 1024 * 1024,
+            )
+            original_deleter = AutoDeleter(
+                folder=this_dir / "recordings",
+                file_prefix="original_",
+                file_suffix=".mp4",
+                size_limit=original_max_GB * 1024 * 1024 * 1024,
+            )
+
             while True:
+                hourly_deleter.run()
+                original_deleter.run()
                 await asyncio.sleep(1)
 
                 past_hour_feeds.append(is_feeding)
