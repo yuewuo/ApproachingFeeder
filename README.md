@@ -1,6 +1,8 @@
 # ApproachingFeeder
 When Momo, the cutest kitten, approaches the wet feeder, open it; after he's gone for a while, close it
 
+<!-- <video src='./example/example.mp4' width=360/> -->
+
 ## Usage
 
 Start a local server in the local network:
