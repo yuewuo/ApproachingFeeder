@@ -4,6 +4,7 @@ import sys
 from dataclasses import dataclass
 import logging
 from logging import getLogger
+from datetime import datetime
 
 
 if "DEBUG" in os.environ:
@@ -71,6 +72,11 @@ class AutoDeleter:
 
     def delete_oldest_files(self, filepaths: list[pathlib.Path]) -> None:
         to_be_deleted = self.to_be_deleted(filepaths)
+        if to_be_deleted:
+            _LOGGER.info(
+                f"Deleting oldest files {to_be_deleted} at "
+                + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
         for filepath in to_be_deleted:
             os.remove(filepath)
 
