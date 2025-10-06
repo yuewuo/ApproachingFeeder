@@ -1,5 +1,7 @@
 "Standalone PETLIBRO API"
 
+# cloned from https://github.com/jjjonesjr33/petlibro/blob/dev/custom_components/petlibro/api.py
+
 ## API Info
 # https://api.us.petlibro.com/device/device/list
 # https://api.us.petlibro.com/device/device/baseInfo
