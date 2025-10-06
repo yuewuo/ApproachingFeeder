@@ -62,7 +62,7 @@ class MotionDetector:
         self.capture_url = f"rtsp://{self.base_url}/h264_ulaw.sdp"
         self.capture = cv2.VideoCapture(self.capture_url)
         # self.fps = self.capture.get(cv2.CAP_PROP_FPS)
-        self.fps = 30  # hardcode it to 30 fps (there is a bug, see below)
+        self.fps = 30.0  # hardcode it to 30 fps (there is a bug, see below)
         # https://stackoverflow.com/questions/58583810/opencv-4-1-1-26-reports-90000-0-fps-for-a-25fps-rtsp-stream
         self.width = int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -71,7 +71,6 @@ class MotionDetector:
         assert self.height == height, "Height is not updated"
         assert self.width == width, "Width is not updated"
 
-        self.is_recording_original = False
         self.is_motion_detected = False
         self.writer_hourly: cv2.VideoWriter | None = None
         self.writer_original: cv2.VideoWriter | None = None
@@ -99,6 +98,10 @@ class MotionDetector:
             fps=1,
         )
         motion_start_time: datetime | None = None
+        # if motion is detected but the frame is stable for more than 30 seconds,
+        # we will consider the motion is not real and soft reboot it quickly
+        last_grey: MatLike | None = None
+        count_stable_frames: int = 0
         while True:
             ret, frame = self.capture.read()
             if not ret:
@@ -119,7 +122,7 @@ class MotionDetector:
             last_failed = False
 
             # do the work that is done in every frame (30fps)
-            if self.is_recording_original:
+            if self.writer_original is not None:
                 self.writer_original.write(frame)
 
             # we will drop frame unless the previous one was taken at least 1 seconds ago
@@ -156,39 +159,45 @@ class MotionDetector:
             average_reference /= len(reference_window)
             gray_reference = average_reference.astype(np.uint8)
 
-            frame_diff = cv2.absdiff(gray_reference, gray_frame)
-            thresh = cv2.threshold(frame_diff, 25, 255, cv2.THRESH_BINARY)[1]
-            thresh = cv2.dilate(thresh, None, iterations=2)
-
-            contours, _ = cv2.findContours(
-                thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            is_motion_detected = self.is_different(
+                gray_reference, gray_frame, frame_to_draw=frame
             )
-
-            is_motion_detected = False
-            for contour in contours:
-                # the number 0.015 is calculated based on the size of the plate (~0.011)
-                if cv2.contourArea(contour) < 0.015 * frame.shape[0] * frame.shape[1]:
-                    continue
-                (x, y, w, h) = cv2.boundingRect(contour)
-                if not self.is_motion_detected and not is_motion_detected:
-                    motion_start_time = datetime.now()
-                    _LOGGER.debug(
-                        "Motion started at "
-                        + motion_start_time.strftime("%Y-%m-%d %H:%M:%S")
-                    )
-                    self.start_recording_original()
-                is_motion_detected = True
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            if not is_motion_detected and self.is_motion_detected:
+            if is_motion_detected and not self.is_motion_detected:
+                motion_start_time = datetime.now()
+                _LOGGER.debug(
+                    "Motion started at "
+                    + motion_start_time.strftime("%Y-%m-%d %H:%M:%S")
+                )
+                self.start_recording_original()
+                count_stable_frames = 0
+            elif not is_motion_detected and self.is_motion_detected:
                 motion_start_time = None
                 _LOGGER.debug(
                     "Motion ended at " + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 )
                 self.stop_recording_original()
+                count_stable_frames = 0
             self.is_motion_detected = is_motion_detected
 
             if not self.is_motion_detected:
                 reference_window.append((time.time(), gray_frame))
+
+            if last_grey is not None and is_motion_detected:
+                if self.is_different(last_grey, gray_frame):
+                    count_stable_frames = 0
+                else:
+                    count_stable_frames += 1
+                if count_stable_frames > 30:
+                    _LOGGER.debug(
+                        "Stable frames cause motion soft reboot at "
+                        + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    )
+                    count_stable_frames = 0
+                    motion_start_time = None
+                    self.is_motion_detected = False
+                    reference_window.clear()  # soft reboot
+
+            last_grey = gray_frame
 
             if (
                 motion_start_time is not None
@@ -205,33 +214,56 @@ class MotionDetector:
             if self.writer_hourly is not None:
                 self.writer_hourly.write(frame)
 
+    def is_different(
+        self, frame1: MatLike, frame2: MatLike, *, frame_to_draw: MatLike | None = None
+    ) -> bool:
+        frame_diff = cv2.absdiff(frame1, frame2)
+        thresh = cv2.threshold(frame_diff, 25, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.dilate(thresh, kernel=np.ones((3, 3), np.uint8), iterations=2)
+
+        contours, _ = cv2.findContours(
+            thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        is_motion_detected = False
+        for contour in contours:
+            # the number 0.015 is calculated based on the size of the plate (~0.011)
+            if cv2.contourArea(contour) < 0.015 * frame1.shape[0] * frame1.shape[1]:
+                continue
+            (x, y, w, h) = cv2.boundingRect(contour)
+            is_motion_detected = True
+            if frame_to_draw is not None:
+                cv2.rectangle(frame_to_draw, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        return is_motion_detected
+
     def start_recording_original(self) -> None:
-        if self.is_recording_original:
+        if self.writer_original is not None:
             return
         self.writer_original = self.create_video_writer(
             this_dir / "recordings" / f"original_{self.now_mp4()}"
         )
-        self.is_recording_original = True
 
     def create_video_writer(
-        self, filename: str, fps: float | None = None
+        self, filename: pathlib.Path, fps: float | None = None
     ) -> cv2.VideoWriter:
-        fourcc = cv2.VideoWriter_fourcc(*"avc1")
+        fourcc: int = cv2.VideoWriter.fourcc(*"avc1")
         return cv2.VideoWriter(
-            filename, fourcc, fps or self.fps, (self.width, self.height)
+            str(filename),
+            fourcc=fourcc,
+            fps=fps or self.fps,
+            frameSize=(self.width, self.height),
         )
 
     def stop_recording_original(self) -> None:
-        if not self.is_recording_original:
+        if self.writer_original is None:
             return
-        self.is_recording_original = False
         self.writer_original.release()
         self.writer_original = None
 
     def now_mp4(self) -> str:
         return datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".mp4"
 
-    def gray_frame_of(self, frame) -> None:
+    def gray_frame_of(self, frame) -> MatLike:
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray_frame = cv2.GaussianBlur(gray_frame, (21, 21), 0)
         return gray_frame
