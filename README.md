@@ -2,6 +2,7 @@
 When Momo, the cutest kitten, approaches the wet feeder, open it; after he's gone for a while, close it
 
 <!-- <video src='./example/example.mp4' width=360/> -->
+![](https://github.com/user-attachments/assets/f6990f78-17a3-46dd-bc3b-a53d67fecad4)
 
 ## Usage
 
