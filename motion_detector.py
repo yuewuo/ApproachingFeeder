@@ -183,7 +183,7 @@ class MotionDetector:
                 reference_window.append((time.time(), gray_frame))
 
             if last_grey is not None and is_motion_detected:
-                if self.is_different(last_grey, gray_frame):
+                if self.is_different(last_grey, gray_frame, threshold_ratio=0.001):
                     count_stable_frames = 0
                 else:
                     count_stable_frames += 1
@@ -215,7 +215,13 @@ class MotionDetector:
                 self.writer_hourly.write(frame)
 
     def is_different(
-        self, frame1: MatLike, frame2: MatLike, *, frame_to_draw: MatLike | None = None
+        self,
+        frame1: MatLike,
+        frame2: MatLike,
+        *,
+        frame_to_draw: MatLike | None = None,
+        # the number 0.015 is calculated based on the size of the plate (~0.011)
+        threshold_ratio: float = 0.015,
     ) -> bool:
         frame_diff = cv2.absdiff(frame1, frame2)
         thresh = cv2.threshold(frame_diff, 25, 255, cv2.THRESH_BINARY)[1]
@@ -226,9 +232,9 @@ class MotionDetector:
         )
 
         is_motion_detected = False
+        threshold_area = threshold_ratio * frame1.shape[0] * frame1.shape[1]
         for contour in contours:
-            # the number 0.015 is calculated based on the size of the plate (~0.011)
-            if cv2.contourArea(contour) < 0.015 * frame1.shape[0] * frame1.shape[1]:
+            if cv2.contourArea(contour) < threshold_area:
                 continue
             (x, y, w, h) = cv2.boundingRect(contour)
             is_motion_detected = True
