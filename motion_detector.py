@@ -112,6 +112,15 @@ class MotionDetector:
                     )
                 last_failed = True
                 time.sleep(1)  # try again in 1 second
+                if time.time() - last_time > 60:
+                    last_time = time.time()
+                    # if it does not recover after 1min, we will reinitialize the capture stream
+                    self.capture.release()
+                    self.capture = cv2.VideoCapture(self.capture_url)
+                    _LOGGER.error(
+                        "Reconnecting the video stream at "
+                        + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    )
                 continue
             else:
                 if last_failed:
@@ -195,6 +204,7 @@ class MotionDetector:
                     count_stable_frames = 0
                     motion_start_time = None
                     self.is_motion_detected = False
+                    self.stop_recording_original()
                     reference_window.clear()  # soft reboot
 
             last_grey = gray_frame
@@ -209,6 +219,7 @@ class MotionDetector:
                 )
                 motion_start_time = None
                 self.is_motion_detected = False
+                self.stop_recording_original()
                 reference_window.clear()  # soft reboot
 
             if self.writer_hourly is not None:
