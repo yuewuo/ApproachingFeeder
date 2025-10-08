@@ -66,6 +66,7 @@ class MotionDetector:
         # https://stackoverflow.com/questions/58583810/opencv-4-1-1-26-reports-90000-0-fps-for-a-25fps-rtsp-stream
         self.width = int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.frame: MatLike | None = None
         _LOGGER.debug(f"FPS: {self.fps}, Width: {self.width}, Height: {self.height}")
         assert self.fps > 0 and self.fps <= 120, "FPS is not correct"
         assert self.height == height, "Height is not updated"
@@ -133,6 +134,7 @@ class MotionDetector:
             # do the work that is done in every frame (30fps)
             if self.writer_original is not None:
                 self.writer_original.write(frame)
+            self.frame = frame
 
             # we will drop frame unless the previous one was taken at least 1 seconds ago
             if time.time() - last_time < 1:

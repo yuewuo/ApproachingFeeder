@@ -1,6 +1,7 @@
 from motion_detector import MotionDetector, this_dir
 from wet_feeder import WetFoodFeeder
 from auto_deleter import AutoDeleter
+from auto_torch import AutoTorch
 import asyncio
 import aiohttp
 import arguably
@@ -21,22 +22,30 @@ _LOGGER = getLogger(__name__)
 
 
 @arguably.command
-def run_main(*, plate: int = 1, hourly_max_GB: float = 20, original_max_GB: float = 20):
+def run_main(
+    *,
+    plate: int = 1,
+    hourly_max_GB: float = 20,
+    original_max_GB: float = 20,
+    ip_port: str = "192.168.0.91:8080",
+):
     asyncio.run(
         main(
             plate=plate,
             hourly_max_GB=hourly_max_GB,
             original_max_GB=original_max_GB,
+            ip_port=ip_port,
         )
     )
 
 
-async def main(plate: int, hourly_max_GB: float, original_max_GB: float):
+async def main(plate: int, hourly_max_GB: float, original_max_GB: float, ip_port: str):
     """
     when motion is detected, feed until the motion is gone
     Feed at most 10 minutes for the past hour (at most 1/6 of the whole day) to keep the food fresh
     Feed at most 10 times in the past hour: if more than that, it's probably unnecessarily
     """
+    auto_torch = AutoTorch(ip_port=ip_port)
 
     async with aiohttp.ClientSession() as session:
         feeder = WetFoodFeeder(session)
@@ -53,7 +62,7 @@ async def main(plate: int, hourly_max_GB: float, original_max_GB: float):
             _LOGGER.error(e)
         await asyncio.sleep(3)
 
-        with MotionDetector() as detector:
+        with MotionDetector(ip_port=ip_port) as detector:
 
             is_feeding = False
             past_hour_feeds: list[bool] = [False] * 3600
@@ -74,6 +83,8 @@ async def main(plate: int, hourly_max_GB: float, original_max_GB: float):
             )
 
             while True:
+                if detector.frame is not None:
+                    auto_torch.run(detector.frame)
                 hourly_deleter.run()
                 original_deleter.run()
                 await asyncio.sleep(1)
