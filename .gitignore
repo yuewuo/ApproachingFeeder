@@ -208,6 +208,7 @@ __marimo__/
 
 
 credentials.json
+password.hpp
 recordings
 
 example/reference.jpg
