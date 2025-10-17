@@ -25,6 +25,8 @@ _LOGGER = getLogger(__name__)
 def run_main(
     *,
     plate: int = 1,
+    wet_max_times_per_hour: int = 3,
+    wet_max_duration_per_hour: int = 5 * 60,  # 5 minutes is usually sufficient
     hourly_max_GB: float = 20,
     original_max_GB: float = 20,
     ip_port: str = "192.168.0.91:8080",
@@ -35,11 +37,20 @@ def run_main(
             hourly_max_GB=hourly_max_GB,
             original_max_GB=original_max_GB,
             ip_port=ip_port,
+            wet_max_times_per_hour=wet_max_times_per_hour,
+            wet_max_duration_per_hour=wet_max_duration_per_hour,
         )
     )
 
 
-async def main(plate: int, hourly_max_GB: float, original_max_GB: float, ip_port: str):
+async def main(
+    plate: int,
+    hourly_max_GB: float,
+    original_max_GB: float,
+    ip_port: str,
+    wet_max_times_per_hour: int,
+    wet_max_duration_per_hour: int,
+):
     """
     when motion is detected, feed until the motion is gone
     Feed at most 10 minutes for the past hour (at most 1/6 of the whole day) to keep the food fresh
@@ -99,7 +110,10 @@ async def main(plate: int, hourly_max_GB: float, original_max_GB: float, ip_port
                 if detector.is_motion_detected:
                     first_no_motion = None
                     # feed at most 10 times in the past hour: if more than that, it's probably unnecessarily
-                    if not is_feeding and sum(past_hour_starts) < 10:
+                    if (
+                        not is_feeding
+                        and sum(past_hour_starts) < wet_max_times_per_hour
+                    ):
                         _LOGGER.info(
                             "Start feeding at "
                             + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -115,7 +129,9 @@ async def main(plate: int, hourly_max_GB: float, original_max_GB: float, ip_port
                             _LOGGER.error(e)
                         is_feeding = True
                     # feeding too long: preserve freshness instead of feeding for too long (>10min)
-                    elif is_feeding and sum(past_hour_feeds) > 10 * 60:
+                    elif (
+                        is_feeding and sum(past_hour_feeds) > wet_max_duration_per_hour
+                    ):
                         is_feeding = False
                         _LOGGER.info(
                             "Stop feeding because it has been feeding for too long at "
