@@ -113,6 +113,7 @@ async def main(
                     if (
                         not is_feeding
                         and sum(past_hour_starts) < wet_max_times_per_hour
+                        and sum(past_hour_feeds) < wet_max_duration_per_hour
                     ):
                         _LOGGER.info(
                             "Start feeding at "
@@ -130,7 +131,8 @@ async def main(
                         is_feeding = True
                     # feeding too long: preserve freshness instead of feeding for too long (>10min)
                     elif (
-                        is_feeding and sum(past_hour_feeds) > wet_max_duration_per_hour
+                        is_feeding
+                        and sum(past_hour_feeds) > wet_max_duration_per_hour + 120
                     ):
                         is_feeding = False
                         _LOGGER.info(
