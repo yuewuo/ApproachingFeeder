@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Home Control</title>
+    <style>
+        body {
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            touch-action: manipulation;
+        }
+
+        .row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .square-button {
+            width: 232px;
+            height: 232px;
+            color: white;
+            border: none;
+            margin: 12px;
+            font-size: 30px;
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+
+        .square-button:active {
+            background-color: #e5e5e5;
+            outline: none;
+            color: grey;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <div id="app">
+        <div class="row">
+            <h1>Home Control</h1>
+        </div>
+        <hr>
+        <div class="row">
+            <h3>Dry feeder{{ mealPending + snackPending == 0 ? ' ' : ` is feeding Momo ${mealPending} meal(s) and
+                ${snackPending} snacks ...` }}
+            </h3>
+        </div>
+        <div class="row">
+            <button class="square-button" style="background-color: #fcab65; border-radius: 30px;" @click="feedMeal">Dry
+                food</button>
+            <button class="square-button" style="background-color: #7b7bf8; border-radius: 30px;"
+                @click="feedSnack">Mixed snack</button>
+        </div>
+    </div>
+
+
+    <script>
+        const { createApp, ref } = Vue
+        // const dryFeederUrl = 'http://192.168.0.166'  // real url
+        const dryFeederUrl = 'http://192.168.0.100'  // for debugging
+        const mealUrl = dryFeederUrl + '/meal'
+        const snackUrl = dryFeederUrl + '/snack'
+        createApp({
+            setup() {
+                async function sleep(ms) {
+                    return new Promise(resolve => setTimeout(resolve, ms))
+                }
+                const feedMeal = async () => {
+                    mealPending.value += 1
+                    try {
+                        await sleep(1000)
+                        await fetch(mealUrl)
+                    } catch (error) {
+                        console.error('Error feeding meal:', error)
+                    }
+                    mealPending.value -= 1
+                }
+                const feedSnack = async () => {
+                    snackPending.value += 1
+                    try {
+                        await sleep(1000)
+                        await fetch(snackUrl)
+                    } catch (error) {
+                        console.error('Error feeding snack:', error)
+                    }
+                    snackPending.value -= 1
+                }
+                const mealPending = ref(0)
+                const snackPending = ref(0)
+                return {
+                    mealPending,
+                    snackPending,
+                    feedMeal,
+                    feedSnack
+                }
+            }
+        }).mount('#app')
+
+        // document.addEventListener('gesturestart', function (e) {
+        //     e.preventDefault();
+        // });
+    </script>
+
+</body>
+
+</html>
