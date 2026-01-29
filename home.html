@@ -6,10 +6,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Home Control</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
+            margin: 0;
+            padding: 0;
             overflow: hidden;
             font-family: 'Arial', sans-serif;
             touch-action: manipulation;
+            background: linear-gradient(135deg, #fafafa 0%, #f0f0f5 100%);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
 
         .row {
@@ -28,12 +59,146 @@
             font-size: 30px;
             font-weight: bold;
             touch-action: manipulation;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
         .square-button:active {
             background-color: #e5e5e5;
             outline: none;
             color: grey;
+        }
+
+        .square-button:hover {
+            transform: scale(1.02);
+        }
+
+        /* Water Tank Reminder Styles */
+        .water-reminder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            border-radius: 30px;
+            transition: all 0.5s ease;
+            min-width: 320px;
+        }
+
+        .water-reminder.ok {
+            background: linear-gradient(145deg, #5ecfcf 0%, #4db8b8 100%);
+            box-shadow: 0 8px 32px rgba(94, 207, 207, 0.3);
+        }
+
+        .water-reminder.warning {
+            background: linear-gradient(145deg, #f0c674 0%, #e6b85c 100%);
+            box-shadow: 0 8px 32px rgba(240, 198, 116, 0.4);
+        }
+
+        .water-reminder.overdue {
+            background: linear-gradient(145deg, #ff7b7b 0%, #f06565 100%);
+            box-shadow: 0 8px 32px rgba(255, 123, 123, 0.4);
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 8px 32px rgba(255, 123, 123, 0.4);
+            }
+
+            50% {
+                transform: scale(1.03);
+                box-shadow: 0 12px 48px rgba(255, 123, 123, 0.6), 0 0 0 8px rgba(255, 123, 123, 0.1);
+            }
+        }
+
+        .water-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            animation: droplet 3s ease-in-out infinite;
+        }
+
+        @keyframes droplet {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .water-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .water-days {
+            font-size: 72px;
+            font-weight: bold;
+            color: white;
+            line-height: 1;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .water-status {
+            font-size: 24px;
+            color: white;
+            margin-top: 10px;
+            opacity: 0.95;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .water-button {
+            margin-top: 30px;
+            padding: 18px 36px;
+            font-size: 22px;
+            font-weight: bold;
+            color: white;
+            background: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .water-button:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(1.05);
+        }
+
+        .water-button:active {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(0.98);
+        }
+
+        .section-title {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .section-subtitle {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        hr {
+            width: 80%;
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 15px 0;
         }
     </style>
 </head>
@@ -42,35 +207,57 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
     <div id="app">
-        <div class="row">
-            <h1>Home Control</h1>
-        </div>
-        <hr>
-        <div class="row">
-            <h3>Dry feeder{{ mealPending + snackPending == 0 ? ' ' : ` is feeding Momo ${mealPending} meal(s) and
-                ${snackPending} snacks ...` }}
-            </h3>
-        </div>
-        <div class="row">
-            <button class="square-button" style="background-color: #fcab65; border-radius: 30px;" @click="feedMeal">Dry
-                food</button>
-            <button class="square-button" style="background-color: #7b7bf8; border-radius: 30px;"
-                @click="feedSnack">Mixed snack</button>
+        <div class="main-container">
+            <!-- Left Panel: Dry Feeder -->
+            <div class="left-panel">
+                <div class="row">
+                    <h1 class="section-title">🍽️ Dry Feeder</h1>
+                </div>
+                <div class="row">
+                    <h3 class="section-subtitle">{{ mealPending + snackPending == 0 ? 'Tap to feed Momo' : `Feeding Momo
+                        ${mealPending} meal(s) and ${snackPending} snack(s)...` }}</h3>
+                </div>
+                <div class="row">
+                    <button class="square-button" style="background-color: #fcab65; border-radius: 30px;"
+                        @click="feedMeal">Dry
+                        food</button>
+                    <button class="square-button" style="background-color: #7b7bf8; border-radius: 30px;"
+                        @click="feedSnack">Mixed snack</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Water Tank Reminder -->
+            <div class="right-panel">
+                <div class="water-reminder" :class="waterStatus">
+                    <div class="water-icon">💧</div>
+                    <div class="water-title">Water Tank</div>
+                    <div class="water-days">{{ Math.abs(daysRemaining) }}</div>
+                    <div class="water-status">{{ waterStatusText }}</div>
+                    <button class="water-button" @click="markWaterChanged">✓ Changed Today</button>
+                </div>
+            </div>
         </div>
     </div>
 
 
     <script>
-        const { createApp, ref } = Vue
+        const { createApp, ref, computed } = Vue
         // const dryFeederUrl = 'http://192.168.0.166'  // real url
         const dryFeederUrl = 'http://192.168.0.100'  // for debugging
         const mealUrl = dryFeederUrl + '/meal'
         const snackUrl = dryFeederUrl + '/snack'
+
+        // Water tank reminder constants
+        const WATER_CHANGE_INTERVAL_DAYS = 4
+        const STORAGE_KEY = 'lastWaterChange'
+
         createApp({
             setup() {
                 async function sleep(ms) {
                     return new Promise(resolve => setTimeout(resolve, ms))
                 }
+
+                // Dry feeder functions
                 const feedMeal = async () => {
                     mealPending.value += 1
                     try {
@@ -93,11 +280,56 @@
                 }
                 const mealPending = ref(0)
                 const snackPending = ref(0)
+
+                // Water tank reminder functions
+                const getStoredDate = () => {
+                    const stored = localStorage.getItem(STORAGE_KEY)
+                    return stored ? parseInt(stored, 10) : null
+                }
+
+                const lastWaterChange = ref(getStoredDate())
+
+                const daysRemaining = computed(() => {
+                    if (!lastWaterChange.value) {
+                        return 0 // No record, treat as overdue
+                    }
+                    const now = new Date()
+                    const lastChange = new Date(lastWaterChange.value)
+                    const diffTime = now - lastChange
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+                    return WATER_CHANGE_INTERVAL_DAYS - diffDays
+                })
+
+                const waterStatus = computed(() => {
+                    if (daysRemaining.value <= 0) return 'overdue'
+                    if (daysRemaining.value === 1) return 'warning'
+                    return 'ok'
+                })
+
+                const waterStatusText = computed(() => {
+                    if (daysRemaining.value <= 0) {
+                        const overdueDays = Math.abs(daysRemaining.value)
+                        if (overdueDays === 0) return 'Change today!'
+                        return `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue!`
+                    }
+                    return `day${daysRemaining.value > 1 ? 's' : ''} remaining`
+                })
+
+                const markWaterChanged = () => {
+                    const now = Date.now()
+                    lastWaterChange.value = now
+                    localStorage.setItem(STORAGE_KEY, now.toString())
+                }
+
                 return {
                     mealPending,
                     snackPending,
                     feedMeal,
-                    feedSnack
+                    feedSnack,
+                    daysRemaining,
+                    waterStatus,
+                    waterStatusText,
+                    markWaterChanged
                 }
             }
         }).mount('#app')
