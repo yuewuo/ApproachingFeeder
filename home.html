@@ -242,8 +242,8 @@
 
     <script>
         const { createApp, ref, computed } = Vue
-        // const dryFeederUrl = 'http://192.168.0.166'  // real url
-        const dryFeederUrl = 'http://192.168.0.100'  // for debugging
+        const dryFeederUrl = 'http://192.168.0.166'  // real url
+        // const dryFeederUrl = 'http://192.168.0.100'  // for debugging
         const mealUrl = dryFeederUrl + '/meal'
         const snackUrl = dryFeederUrl + '/snack'
 
@@ -288,14 +288,20 @@
                 }
 
                 const lastWaterChange = ref(getStoredDate())
+                const now = ref(Date.now())
+
+                // Update 'now' every minute to keep countdown fresh
+                setInterval(() => {
+                    now.value = Date.now()
+                }, 60 * 1000)
 
                 const daysRemaining = computed(() => {
                     if (!lastWaterChange.value) {
                         return 0 // No record, treat as overdue
                     }
-                    const now = new Date()
+                    const currentTime = new Date(now.value)
                     const lastChange = new Date(lastWaterChange.value)
-                    const diffTime = now - lastChange
+                    const diffTime = currentTime - lastChange
                     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
                     return WATER_CHANGE_INTERVAL_DAYS - diffDays
                 })
