@@ -1,14 +1,89 @@
+/*
+Lonely Binary ESP32-S3 N16R8 Arduino IDE Settings:
+Board: ESP32S3 Dev Module
+USB CDC On Boot: "Enabled"     <--- this is essential for serial monitor to work
+PSRAM: OPI PSRAM
+Flash Size: 16MB (128Mb)
+Flash Mode: QIO 80MHz
+Partition Scheme: 16M Flash (3MB APP/9.9MB FATFS)
+Upload Mode: UART0 / Hardware CDC
+USB Mode: Hardware CDC and JTAG
+
+TODO: use https when deployment
+*/
+
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
+#include <FastLED.h>
 #include "password.hpp"
 #include "lock_controller.hpp"
 #include "uln2003_stepper.hpp"
 
-const int LED_PIN = LED_BUILTIN;
+// RGB LED configuration (Lonely Binary ESP32-S3 onboard LED)
+#define RGB_LED_PIN 48
+#define NUM_LEDS 1
+CRGB leds[NUM_LEDS];
 
 HardwareStepperController controller;
 WebServer server(80);
+
+// --- LED Position Indicator ---
+
+/**
+ * Update the RGB LED to indicate current position.
+ * - Centered (0): LED off
+ * - Negative position: Red, brightness proportional to |position / lock_position|
+ * - Positive position: Green, brightness proportional to |position / unlock_position|
+ */
+void updatePositionLED()
+{
+    int pos = controller.getCurrentPosition();
+    int lock_pos = controller.getLockPosition();
+    int unlock_pos = controller.getUnlockPosition();
+
+    if (pos == 0)
+    {
+        // Centered - LED off
+        leds[0] = CRGB::Black;
+    }
+    else if (pos < 0)
+    {
+        // Negative position - show red
+        // Brightness is proportional to how close we are to lock position
+        float ratio = 0.0f;
+        if (lock_pos < 0)
+        {
+            ratio = (float)pos / (float)lock_pos; // Both negative, ratio is positive
+        }
+        else if (lock_pos != 0)
+        {
+            ratio = (float)(-pos) / (float)abs(lock_pos);
+        }
+        ratio = constrain(ratio, 0.0f, 1.0f);
+        uint8_t brightness = (uint8_t)(ratio * 255);
+        leds[0] = CRGB(brightness, 0, 0); // Red
+    }
+    else
+    {
+        // Positive position - show green
+        // Brightness is proportional to how close we are to unlock position
+        float ratio = 0.0f;
+        if (unlock_pos > 0)
+        {
+            ratio = (float)pos / (float)unlock_pos;
+        }
+        else if (unlock_pos != 0)
+        {
+            ratio = (float)pos / (float)abs(unlock_pos);
+        }
+        ratio = constrain(ratio, 0.0f, 1.0f);
+        uint8_t brightness = (uint8_t)(ratio * 255);
+        leds[0] = CRGB(0, brightness, 0); // Green
+    }
+
+    FastLED.show();
+}
 
 // --- Helper functions ---
 
@@ -53,7 +128,6 @@ String extractJsonString(const String &json, const String &key)
  */
 void handleRoot()
 {
-    digitalWrite(LED_PIN, HIGH);
     String html = "<!DOCTYPE html><html><head><title>Auto Lock</title></head><body>";
     html += "<h1>Auto Lock Controller</h1>";
     html += "<p>Position: " + String(controller.getCurrentPosition()) + "</p>";
@@ -63,7 +137,6 @@ void handleRoot()
     html += "<p><a href='/status'>JSON Status</a></p>";
     html += "</body></html>";
     server.send(200, "text/html", html);
-    digitalWrite(LED_PIN, LOW);
 }
 
 /**
@@ -120,6 +193,7 @@ void handleStep()
     Serial.printf("Step: dir=%s, size=%s, steps=%d, new_pos=%d\n",
                   direction.c_str(), size.c_str(), steps, newPos);
 
+    updatePositionLED();
     sendJsonResponse(200, "{\"position\":" + String(newPos) + "}");
 }
 
@@ -132,6 +206,7 @@ void handleSetCenter()
 {
     int pos = controller.setCenter();
     Serial.printf("Set center: position=%d\n", pos);
+    updatePositionLED();
     sendJsonResponse(200, "{\"position\":" + String(pos) + "}");
 }
 
@@ -173,6 +248,7 @@ void handleLock()
     }
     int pos = controller.lock();
     Serial.printf("Lock: position=%d (will return to center)\n", pos);
+    updatePositionLED();
     sendJsonResponse(200, "{\"position\":" + String(pos) + "}");
 }
 
@@ -190,6 +266,7 @@ void handleUnlock()
     }
     int pos = controller.unlock();
     Serial.printf("Unlock: position=%d (will return to center)\n", pos);
+    updatePositionLED();
     sendJsonResponse(200, "{\"position\":" + String(pos) + "}");
 }
 
@@ -233,13 +310,19 @@ void handleNotFound()
 void setup()
 {
     Serial.begin(115200);
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LOW);
+
+    // Initialize RGB LED
+    FastLED.addLeds<WS2812, RGB_LED_PIN, GRB>(leds, NUM_LEDS);
+    leds[0] = CRGB::Black;
+    FastLED.show();
 
     delay(100);
 
     // Initialize stepper controller
     controller.begin();
+
+    // Show initial position on LED
+    updatePositionLED();
 
     // Connect to WiFi
     Serial.println();
@@ -249,14 +332,22 @@ void setup()
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
+    // Blink blue while connecting to WiFi
+    bool ledState = false;
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(500);
         Serial.print(".");
-        digitalWrite(LED_PIN, !digitalRead(LED_PIN)); // Blink while connecting
+        leds[0] = ledState ? CRGB::Blue : CRGB::Black;
+        FastLED.show();
+        ledState = !ledState;
     }
 
-    digitalWrite(LED_PIN, LOW);
+    // WiFi connected - show green briefly
+    leds[0] = CRGB::Green;
+    FastLED.show();
+    delay(500);
+
     Serial.println("");
     Serial.println("WiFi connected.");
     Serial.print("IP address: ");
@@ -267,6 +358,9 @@ void setup()
     {
         Serial.println("MDNS responder started: http://auto_lock.local");
     }
+
+    // Show position on LED
+    updatePositionLED();
 
     // Register routes
     server.on("/", HTTP_GET, handleRoot);
@@ -294,6 +388,7 @@ void loop()
         Serial.println("Processing return to center...");
         controller.processReturnToCenter();
         Serial.printf("Returned to center, position=%d\n", controller.getCurrentPosition());
+        updatePositionLED();
     }
 
     delay(2); // Allow CPU to handle other tasks
