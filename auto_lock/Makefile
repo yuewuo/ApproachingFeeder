@@ -1,16 +1,16 @@
 # Auto Lock Mock Server Makefile
 
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -O2
+CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -I.
 LDFLAGS = -pthread
 
 TARGET = mock_server
-SOURCES = mock_main.cpp
-HEADERS = lock_controller.hpp mock_stepper.hpp httplib.h
+SOURCES = mock/mock_main.cpp
+HEADERS = lock_controller.hpp mock/mock_stepper.hpp mock/httplib.h
 
 PORT ?= 8080
 
-.PHONY: all clean run deps html
+.PHONY: all clean run deps html arduino
 
 all: html $(TARGET)
 
@@ -22,10 +22,15 @@ html:
 	python3 generate_html_header.py
 
 # Download cpp-httplib if not present
-deps: httplib.h
+deps: mock/httplib.h
 
-httplib.h:
-	curl -sO https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+mock/httplib.h:
+	mkdir -p mock
+	curl -so mock/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+
+# Compile Arduino sketch (verify only)
+arduino:
+	arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc,USBMode=hwcdc auto_lock.ino
 
 run: $(TARGET)
 	./$(TARGET) $(PORT)

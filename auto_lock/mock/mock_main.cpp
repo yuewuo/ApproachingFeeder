@@ -2,16 +2,16 @@
  * Mock server for auto_lock testing.
  * Uses cpp-httplib to provide the same HTTP API as the ESP32 firmware.
  *
- * Build:
- *   g++ -std=c++17 mock_main.cpp -o mock_server -pthread
+ * Build (from auto_lock directory):
+ *   make
  *
  * Run:
  *   ./mock_server [port]
  *   Default port: 8080
  *
  * Dependencies:
- *   - httplib.h (cpp-httplib, header-only) - download from:
- *     https://github.com/yhirose/cpp-httplib/blob/master/httplib.h
+ *   - httplib.h (cpp-httplib, header-only) - download with:
+ *     make deps
  */
 
 #include <iostream>
@@ -22,7 +22,7 @@
 #include <atomic>
 #include <mutex>
 #include "httplib.h"
-#include "lock_controller.hpp"
+#include "../lock_controller.hpp"
 #include "mock_stepper.hpp"
 
 MockStepperController controller;
