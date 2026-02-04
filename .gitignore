@@ -213,3 +213,6 @@ recordings
 
 example/reference.jpg
 example/example.mp4
+
+auto_lock/mock_server
+auto_lock/auto_lock_config.json
