@@ -33,7 +33,7 @@ WebServer server(80);
 
 /**
  * Update the RGB LED to indicate current position.
- * - Centered (0): LED off
+ * - Centered (0): Very dim white (standby indicator)
  * - Negative position: Red, brightness proportional to |position / lock_position|
  * - Positive position: Green, brightness proportional to |position / unlock_position|
  */
@@ -45,8 +45,8 @@ void updatePositionLED()
 
     if (pos == 0)
     {
-        // Centered - LED off
-        leds[0] = CRGB::Black;
+        // Centered - very dim white to indicate standby (not power loss)
+        leds[0] = CRGB(2, 2, 2);
     }
     else if (pos < 0)
     {
@@ -319,21 +319,55 @@ void setup()
 
     // Connect to WiFi
     Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
+    Serial.print("Connecting to WiFi...");
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
     // Blink blue while connecting to WiFi
     bool ledState = false;
+    int attempts = 0;
+    bool debugPrinted = false;
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(500);
+        attempts++;
         Serial.print(".");
         leds[0] = ledState ? CRGB::Blue : CRGB::Black;
         FastLED.show();
         ledState = !ledState;
+
+        // Print debug info after 30 seconds if not connected
+        if (attempts == 60 && !debugPrinted)
+        {
+            debugPrinted = true;
+            Serial.println("\n\n=== WiFi Debug (not connected after 30s) ===");
+            Serial.printf("Target SSID: '%s'\n", ssid);
+            Serial.printf("Password length: %d\n", strlen(password));
+            Serial.printf("WiFi status: %d\n", WiFi.status());
+            // Status: 0=IDLE, 1=NO_SSID_AVAIL, 4=CONNECT_FAILED, 6=DISCONNECTED
+
+            // Scan for available networks
+            Serial.println("Scanning networks...");
+            int numNetworks = WiFi.scanNetworks();
+            Serial.printf("Found %d networks:\n", numNetworks);
+            for (int i = 0; i < numNetworks; i++)
+            {
+                Serial.printf("  %d: '%s' (%d dBm)%s\n",
+                              i + 1, WiFi.SSID(i).c_str(), WiFi.RSSI(i),
+                              (WiFi.SSID(i) == ssid) ? " <-- TARGET" : "");
+            }
+            Serial.println("Retrying connection...");
+            WiFi.begin(ssid, password);
+        }
+
+        // Timeout after 60 seconds
+        if (attempts > 120)
+        {
+            Serial.println("\n*** WiFi timeout! Restarting... ***");
+            delay(3000);
+            ESP.restart();
+        }
     }
 
     // WiFi connected - show green briefly
