@@ -10,12 +10,16 @@ HEADERS = lock_controller.hpp mock_stepper.hpp httplib.h
 
 PORT ?= 8080
 
-.PHONY: all clean run deps
+.PHONY: all clean run deps html
 
-all: $(TARGET)
+all: html $(TARGET)
 
 $(TARGET): $(SOURCES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) $(SOURCES) -o $(TARGET) $(LDFLAGS)
+
+# Generate html_content.hpp from auto_lock.html (always runs)
+html:
+	python3 generate_html_header.py
 
 # Download cpp-httplib if not present
 deps: httplib.h

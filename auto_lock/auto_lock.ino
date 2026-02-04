@@ -19,6 +19,7 @@ TODO: use https when deployment
 #include "password.hpp"
 #include "lock_controller.hpp"
 #include "uln2003_stepper.hpp"
+#include "html_content.hpp"
 
 // RGB LED configuration (Lonely Binary ESP32-S3 onboard LED)
 #define RGB_LED_PIN 48
@@ -124,19 +125,11 @@ String extractJsonString(const String &json, const String &key)
 
 /**
  * GET /
- * Returns a simple HTML status page
+ * Serves the single-page web application (embedded in flash)
  */
 void handleRoot()
 {
-    String html = "<!DOCTYPE html><html><head><title>Auto Lock</title></head><body>";
-    html += "<h1>Auto Lock Controller</h1>";
-    html += "<p>Position: " + String(controller.getCurrentPosition()) + "</p>";
-    html += "<p>Lock Position: " + String(controller.getLockPosition()) + "</p>";
-    html += "<p>Unlock Position: " + String(controller.getUnlockPosition()) + "</p>";
-    html += "<p>Mode: " + String(controller.getModeString().c_str()) + "</p>";
-    html += "<p><a href='/status'>JSON Status</a></p>";
-    html += "</body></html>";
-    server.send(200, "text/html", html);
+    server.send_P(200, "text/html", HTML_PAGE);
 }
 
 /**

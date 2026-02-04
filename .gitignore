@@ -216,3 +216,4 @@ example/example.mp4
 
 auto_lock/mock_server
 auto_lock/auto_lock_config.json
+auto_lock/html_content.hpp
