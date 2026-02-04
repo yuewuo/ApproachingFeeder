@@ -162,6 +162,19 @@
             transform: scale(0.95);
         }
 
+        .btn-center {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 12px 10px;
+            min-width: 50px;
+        }
+
+        .btn-center:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(1.05);
+        }
+
         .btn-large {
             padding: 15px 20px;
         }
@@ -359,6 +372,7 @@
         <div class="controls">
             <button class="btn btn-step btn-large" @click="step('bwd', 'large')" :disabled="isLoading">◀◀</button>
             <button class="btn btn-step" @click="step('bwd', 'small')" :disabled="isLoading">◀</button>
+            <button class="btn btn-center" @click="goToCenter" :disabled="isLoading || position === 0">⦿</button>
             <button class="btn btn-step" @click="step('fwd', 'small')" :disabled="isLoading">▶</button>
             <button class="btn btn-step btn-large" @click="step('fwd', 'large')" :disabled="isLoading">▶▶</button>
         </div>
@@ -493,6 +507,26 @@
                     }
                 };
 
+                const goToCenter = async () => {
+                    // Move back to center by stepping in opposite direction of current position
+                    if (position.value === 0) return;
+                    const direction = position.value > 0 ? 'bwd' : 'fwd';
+                    const stepsNeeded = Math.abs(position.value);
+                    // Move in chunks to allow UI updates
+                    const chunkSize = 100;
+                    let remaining = stepsNeeded;
+                    while (remaining > 0 && position.value !== 0) {
+                        const steps = Math.min(remaining, chunkSize);
+                        const data = await apiCall('/step', 'POST', { direction, size: 'custom', steps });
+                        if (data) {
+                            position.value = data.position;
+                        } else {
+                            break;
+                        }
+                        remaining -= steps;
+                    }
+                };
+
                 const setCenter = async () => {
                     const data = await apiCall('/set_center', 'POST');
                     if (data) {
@@ -611,6 +645,7 @@
                     positionToAngle,
                     markerAngle,
                     step,
+                    goToCenter,
                     setCenter,
                     setLock,
                     setUnlock,

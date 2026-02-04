@@ -86,6 +86,33 @@ std::string extractJsonString(const std::string &json, const std::string &key)
     return json.substr(valueStart + 1, valueEnd - valueStart - 1);
 }
 
+int extractJsonInt(const std::string &json, const std::string &key, int defaultValue = 0)
+{
+    std::string searchKey = "\"" + key + "\"";
+    size_t keyIndex = json.find(searchKey);
+    if (keyIndex == std::string::npos)
+        return defaultValue;
+
+    size_t colonIndex = json.find(':', keyIndex);
+    if (colonIndex == std::string::npos)
+        return defaultValue;
+
+    // Skip whitespace after colon
+    size_t valueStart = colonIndex + 1;
+    while (valueStart < json.length() && json[valueStart] == ' ')
+        valueStart++;
+
+    // Find end of number
+    size_t valueEnd = valueStart;
+    while (valueEnd < json.length() && (isdigit(json[valueEnd]) || json[valueEnd] == '-'))
+        valueEnd++;
+
+    if (valueEnd == valueStart)
+        return defaultValue;
+
+    return std::stoi(json.substr(valueStart, valueEnd - valueStart));
+}
+
 // --- Signal handler for graceful shutdown ---
 
 void signalHandler(int /* signum */)
@@ -172,7 +199,7 @@ int main(int argc, char *argv[])
     /**
      * POST /step
      * Move the motor by specified steps
-     * Request: {"direction": "fwd"|"bwd", "size": "small"|"large"}
+     * Request: {"direction": "fwd"|"bwd", "size": "small"|"large"|"custom", "steps": int (optional)}
      * Response: {"position": int}
      */
     server.Post("/step", [](const httplib::Request &req, httplib::Response &res)
@@ -186,7 +213,14 @@ int main(int argc, char *argv[])
             return;
         }
 
-        int steps = (size == "large") ? LARGE_STEP : SMALL_STEP;
+        int steps;
+        if (size == "custom") {
+            steps = extractJsonInt(req.body, "steps", SMALL_STEP);
+            steps = std::min(std::max(steps, 1), 2048); // Limit custom steps
+        } else {
+            steps = (size == "large") ? LARGE_STEP : SMALL_STEP;
+        }
+
         int newPos;
 
         {

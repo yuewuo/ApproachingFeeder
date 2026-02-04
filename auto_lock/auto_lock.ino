@@ -121,6 +121,33 @@ String extractJsonString(const String &json, const String &key)
     return json.substring(valueStart + 1, valueEnd);
 }
 
+int extractJsonInt(const String &json, const String &key, int defaultValue = 0)
+{
+    String searchKey = "\"" + key + "\"";
+    int keyIndex = json.indexOf(searchKey);
+    if (keyIndex == -1)
+        return defaultValue;
+
+    int colonIndex = json.indexOf(':', keyIndex);
+    if (colonIndex == -1)
+        return defaultValue;
+
+    // Skip whitespace after colon
+    int valueStart = colonIndex + 1;
+    while (valueStart < json.length() && json[valueStart] == ' ')
+        valueStart++;
+
+    // Find end of number (next comma, }, or end of string)
+    int valueEnd = valueStart;
+    while (valueEnd < json.length() && (isdigit(json[valueEnd]) || json[valueEnd] == '-'))
+        valueEnd++;
+
+    if (valueEnd == valueStart)
+        return defaultValue;
+
+    return json.substring(valueStart, valueEnd).toInt();
+}
+
 // --- Route handlers ---
 
 /**
@@ -151,7 +178,7 @@ void handleStatus()
 /**
  * POST /step
  * Move the motor by specified steps
- * Request: {"direction": "fwd"|"bwd", "size": "small"|"large"}
+ * Request: {"direction": "fwd"|"bwd", "size": "small"|"large"|"custom", "steps": int (optional)}
  * Response: {"position": int}
  */
 void handleStep()
@@ -166,7 +193,17 @@ void handleStep()
         return;
     }
 
-    int steps = (size == "large") ? LARGE_STEP : SMALL_STEP;
+    int steps;
+    if (size == "custom")
+    {
+        steps = extractJsonInt(body, "steps", SMALL_STEP);
+        steps = constrain(steps, 1, 2048); // Limit custom steps
+    }
+    else
+    {
+        steps = (size == "large") ? LARGE_STEP : SMALL_STEP;
+    }
+
     int newPos;
 
     if (direction == "fwd")
