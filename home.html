@@ -10,6 +10,11 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+            height: 100dvh;
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -22,14 +27,15 @@
         .main-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            height: 100vh;
+            height: 100%;
+            height: 100dvh;
             width: 100vw;
         }
 
         .left-panel {
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-evenly;
             align-items: center;
             padding: 20px;
             border-right: 1px solid #e0e0e0;
@@ -38,36 +44,53 @@
         .right-panel {
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-evenly;
             align-items: center;
-            padding: 20px;
+            padding: 15px;
+            gap: 0;
         }
 
 
 
-        /* Water Tank Reminder Styles */
-        .water-reminder {
+        /* Reminder Card Styles */
+        .reminder-card {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px;
-            border-radius: 30px;
+            padding: 20px 30px;
+            border-radius: 25px;
             transition: all 0.5s ease;
-            min-width: 320px;
+            min-width: 260px;
         }
 
-        .water-reminder.ok {
+        .reminder-card.ok {
             background: linear-gradient(145deg, #5ecfcf 0%, #4db8b8 100%);
             box-shadow: 0 8px 32px rgba(94, 207, 207, 0.3);
         }
 
-        .water-reminder.warning {
+        .reminder-card.warning {
             background: linear-gradient(145deg, #f0c674 0%, #e6b85c 100%);
             box-shadow: 0 8px 32px rgba(240, 198, 116, 0.4);
         }
 
-        .water-reminder.overdue {
+        .reminder-card.overdue {
+            background: linear-gradient(145deg, #ff7b7b 0%, #f06565 100%);
+            box-shadow: 0 8px 32px rgba(255, 123, 123, 0.4);
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        .reminder-card.toilet.ok {
+            background: linear-gradient(145deg, #a8d8a8 0%, #8bc88b 100%);
+            box-shadow: 0 8px 32px rgba(168, 216, 168, 0.3);
+        }
+
+        .reminder-card.toilet.warning {
+            background: linear-gradient(145deg, #f0c674 0%, #e6b85c 100%);
+            box-shadow: 0 8px 32px rgba(240, 198, 116, 0.4);
+        }
+
+        .reminder-card.toilet.overdue {
             background: linear-gradient(145deg, #ff7b7b 0%, #f06565 100%);
             box-shadow: 0 8px 32px rgba(255, 123, 123, 0.4);
             animation: pulse 2.5s ease-in-out infinite;
@@ -87,69 +110,57 @@
             }
         }
 
-        .water-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-            animation: droplet 3s ease-in-out infinite;
+        .reminder-icon {
+            font-size: 32px;
+            margin-bottom: 4px;
+            animation: bounce 3s ease-in-out infinite;
         }
 
-        @keyframes droplet {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-5px);
-            }
-        }
-
-        .water-title {
-            font-size: 28px;
+        .reminder-title {
+            font-size: 20px;
             font-weight: bold;
             color: white;
-            margin-bottom: 15px;
+            margin-bottom: 6px;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .water-days {
-            font-size: 72px;
+        .reminder-days {
+            font-size: 44px;
             font-weight: bold;
             color: white;
             line-height: 1;
             text-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
-        .water-status {
-            font-size: 24px;
+        .reminder-status {
+            font-size: 16px;
             color: white;
-            margin-top: 10px;
+            margin-top: 4px;
             opacity: 0.95;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .water-button {
-            margin-top: 30px;
-            padding: 18px 36px;
-            font-size: 22px;
+        .reminder-button {
+            margin-top: 12px;
+            padding: 10px 22px;
+            font-size: 16px;
             font-weight: bold;
             color: white;
             background: rgba(255, 255, 255, 0.25);
             border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 20px;
+            border-radius: 16px;
             cursor: pointer;
             touch-action: manipulation;
             transition: all 0.2s ease;
             backdrop-filter: blur(4px);
         }
 
-        .water-button:hover {
+        .reminder-button:hover {
             background: rgba(255, 255, 255, 0.35);
             transform: scale(1.05);
         }
 
-        .water-button:active {
+        .reminder-button:active {
             background: rgba(255, 255, 255, 0.5);
             transform: scale(0.98);
         }
@@ -160,16 +171,16 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px;
-            border-radius: 30px;
+            padding: 30px;
+            border-radius: 25px;
             background: linear-gradient(145deg, #fcab65 0%, #f59a4d 100%);
             box-shadow: 0 8px 32px rgba(252, 171, 101, 0.3);
-            min-width: 320px;
+            min-width: 300px;
         }
 
         .feeder-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
+            font-size: 40px;
+            margin-bottom: 8px;
             animation: bounce 2s ease-in-out infinite;
         }
 
@@ -186,17 +197,17 @@
         }
 
         .feeder-title {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             color: white;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .feeder-status {
-            font-size: 20px;
+            font-size: 18px;
             color: white;
-            margin-bottom: 25px;
+            margin-bottom: 18px;
             opacity: 0.95;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             text-align: center;
@@ -204,12 +215,12 @@
 
         .feeder-buttons {
             display: flex;
-            gap: 15px;
+            gap: 12px;
         }
 
         .feeder-button {
-            padding: 18px 28px;
-            font-size: 20px;
+            padding: 14px 24px;
+            font-size: 18px;
             font-weight: bold;
             color: white;
             background: rgba(255, 255, 255, 0.25);
@@ -252,14 +263,21 @@
                 </div>
             </div>
 
-            <!-- Right Panel: Water Tank Reminder -->
+            <!-- Right Panel: Reminders -->
             <div class="right-panel">
-                <div class="water-reminder" :class="waterStatus">
-                    <div class="water-icon">💧</div>
-                    <div class="water-title">Water Tank</div>
-                    <div class="water-days">{{ Math.abs(daysRemaining) }}</div>
-                    <div class="water-status">{{ waterStatusText }}</div>
-                    <button class="water-button" @click="markWaterChanged">✓ Changed Today</button>
+                <div class="reminder-card" :class="waterStatus">
+                    <div class="reminder-icon">💧</div>
+                    <div class="reminder-title">Water Tank</div>
+                    <div class="reminder-days">{{ Math.abs(waterDaysRemaining) }}</div>
+                    <div class="reminder-status">{{ waterStatusText }}</div>
+                    <button class="reminder-button" @click="markWaterChanged">✓ Changed Today</button>
+                </div>
+                <div class="reminder-card toilet" :class="toiletStatus">
+                    <div class="reminder-icon">🚽</div>
+                    <div class="reminder-title">Cat Toilet</div>
+                    <div class="reminder-days">{{ Math.abs(toiletDaysRemaining) }}</div>
+                    <div class="reminder-status">{{ toiletStatusText }}</div>
+                    <button class="reminder-button" @click="markToiletCleaned">✓ Cleaned Today</button>
                 </div>
             </div>
         </div>
@@ -273,9 +291,11 @@
         const mealUrl = dryFeederUrl + '/meal'
         const snackUrl = dryFeederUrl + '/snack'
 
-        // Water tank reminder constants
+        // Reminder constants
         const WATER_CHANGE_INTERVAL_DAYS = 4
-        const STORAGE_KEY = 'lastWaterChange'
+        const TOILET_CLEAN_INTERVAL_DAYS = 7
+        const WATER_STORAGE_KEY = 'lastWaterChange'
+        const TOILET_STORAGE_KEY = 'lastToiletClean'
 
         createApp({
             setup() {
@@ -307,13 +327,37 @@
                 const mealPending = ref(0)
                 const snackPending = ref(0)
 
-                // Water tank reminder functions
-                const getStoredDate = () => {
-                    const stored = localStorage.getItem(STORAGE_KEY)
+                // Helper function to get stored date
+                const getStoredDate = (key) => {
+                    const stored = localStorage.getItem(key)
                     return stored ? parseInt(stored, 10) : null
                 }
 
-                const lastWaterChange = ref(getStoredDate())
+                // Helper to calculate days remaining
+                const calcDaysRemaining = (lastDate, interval, nowValue) => {
+                    if (!lastDate) return 0
+                    const diffTime = nowValue - lastDate
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+                    return interval - diffDays
+                }
+
+                // Helper to get status
+                const getStatus = (daysRemaining) => {
+                    if (daysRemaining <= 0) return 'overdue'
+                    if (daysRemaining === 1) return 'warning'
+                    return 'ok'
+                }
+
+                // Helper to get status text
+                const getStatusText = (daysRemaining, actionWord) => {
+                    if (daysRemaining <= 0) {
+                        const overdueDays = Math.abs(daysRemaining)
+                        if (overdueDays === 0) return `${actionWord} today!`
+                        return `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue!`
+                    }
+                    return `day${daysRemaining > 1 ? 's' : ''} remaining`
+                }
+
                 const now = ref(Date.now())
 
                 // Update 'now' every minute to keep countdown fresh
@@ -321,36 +365,26 @@
                     now.value = Date.now()
                 }, 60 * 1000)
 
-                const daysRemaining = computed(() => {
-                    if (!lastWaterChange.value) {
-                        return 0 // No record, treat as overdue
-                    }
-                    const currentTime = new Date(now.value)
-                    const lastChange = new Date(lastWaterChange.value)
-                    const diffTime = currentTime - lastChange
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-                    return WATER_CHANGE_INTERVAL_DAYS - diffDays
-                })
-
-                const waterStatus = computed(() => {
-                    if (daysRemaining.value <= 0) return 'overdue'
-                    if (daysRemaining.value === 1) return 'warning'
-                    return 'ok'
-                })
-
-                const waterStatusText = computed(() => {
-                    if (daysRemaining.value <= 0) {
-                        const overdueDays = Math.abs(daysRemaining.value)
-                        if (overdueDays === 0) return 'Change today!'
-                        return `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue!`
-                    }
-                    return `day${daysRemaining.value > 1 ? 's' : ''} remaining`
-                })
-
+                // Water tank reminder
+                const lastWaterChange = ref(getStoredDate(WATER_STORAGE_KEY))
+                const waterDaysRemaining = computed(() => calcDaysRemaining(lastWaterChange.value, WATER_CHANGE_INTERVAL_DAYS, now.value))
+                const waterStatus = computed(() => getStatus(waterDaysRemaining.value))
+                const waterStatusText = computed(() => getStatusText(waterDaysRemaining.value, 'Change'))
                 const markWaterChanged = () => {
-                    const now = Date.now()
-                    lastWaterChange.value = now
-                    localStorage.setItem(STORAGE_KEY, now.toString())
+                    const nowTs = Date.now()
+                    lastWaterChange.value = nowTs
+                    localStorage.setItem(WATER_STORAGE_KEY, nowTs.toString())
+                }
+
+                // Cat toilet reminder
+                const lastToiletClean = ref(getStoredDate(TOILET_STORAGE_KEY))
+                const toiletDaysRemaining = computed(() => calcDaysRemaining(lastToiletClean.value, TOILET_CLEAN_INTERVAL_DAYS, now.value))
+                const toiletStatus = computed(() => getStatus(toiletDaysRemaining.value))
+                const toiletStatusText = computed(() => getStatusText(toiletDaysRemaining.value, 'Clean'))
+                const markToiletCleaned = () => {
+                    const nowTs = Date.now()
+                    lastToiletClean.value = nowTs
+                    localStorage.setItem(TOILET_STORAGE_KEY, nowTs.toString())
                 }
 
                 return {
@@ -358,10 +392,14 @@
                     snackPending,
                     feedMeal,
                     feedSnack,
-                    daysRemaining,
+                    waterDaysRemaining,
                     waterStatus,
                     waterStatusText,
-                    markWaterChanged
+                    markWaterChanged,
+                    toiletDaysRemaining,
+                    toiletStatus,
+                    toiletStatusText,
+                    markToiletCleaned
                 }
             }
         }).mount('#app')
