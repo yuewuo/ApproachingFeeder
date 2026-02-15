@@ -242,6 +242,74 @@
             background: rgba(255, 255, 255, 0.5);
             transform: scale(0.98);
         }
+
+        /* Auto Feed Styles */
+        .auto-feed-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+            padding: 20px 30px;
+            border-radius: 20px;
+            background: rgba(252, 171, 101, 0.12);
+            min-width: 300px;
+        }
+
+        .auto-feed-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e08840;
+            margin-bottom: 10px;
+        }
+
+        .auto-feed-controls {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+
+        .auto-feed-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 22px;
+            font-weight: bold;
+            color: white;
+            background: #fcab65;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auto-feed-btn:active {
+            transform: scale(0.92);
+            background: #e89550;
+        }
+
+        .auto-feed-count {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e08840;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .auto-feed-label {
+            font-size: 14px;
+            color: #b07030;
+        }
+
+        .auto-feed-schedule {
+            font-size: 13px;
+            color: #999;
+            text-align: center;
+            line-height: 1.5;
+        }
     </style>
 </head>
 
@@ -260,6 +328,21 @@
                     <div class="feeder-buttons">
                         <button class="feeder-button" @click="feedMeal">🥣 Dry Food</button>
                         <button class="feeder-button" @click="feedSnack">🍬 Mixed Snack</button>
+                    </div>
+                </div>
+                <div class="auto-feed-section">
+                    <div class="auto-feed-title">⏰ Auto Feed</div>
+                    <div class="auto-feed-controls">
+                        <button class="auto-feed-btn" @click="decreaseAutoMeals">&minus;</button>
+                        <div class="auto-feed-count">{{ autoMealsPerDay }}</div>
+                        <button class="auto-feed-btn" @click="increaseAutoMeals">+</button>
+                        <div class="auto-feed-label">meals/day</div>
+                    </div>
+                    <div class="auto-feed-schedule" v-if="autoMealsPerDay > 0">
+                        {{ autoScheduleText }}
+                    </div>
+                    <div class="auto-feed-schedule" v-else>
+                        Auto feeding is off
                     </div>
                 </div>
             </div>
@@ -298,6 +381,11 @@
         const WATER_STORAGE_KEY = 'lastWaterChange'
         const TOILET_STORAGE_KEY = 'lastToiletClean'
 
+        // Auto feed constants
+        const AUTO_MEALS_KEY = 'autoMealsPerDay'
+        const AUTO_FED_KEY = 'autoFedSlots'
+        const FEED_SLOTS = [8, 13, 20]  // fixed time slots: 8:00, 13:00, 20:00
+
         createApp({
             setup() {
                 async function sleep(ms) {
@@ -327,6 +415,98 @@
                 }
                 const mealPending = ref(0)
                 const snackPending = ref(0)
+
+                // Auto feed logic
+                const autoMealsPerDay = ref(parseInt(localStorage.getItem(AUTO_MEALS_KEY) || '0', 10))
+
+                const increaseAutoMeals = () => {
+                    if (autoMealsPerDay.value < 10) {
+                        autoMealsPerDay.value++
+                        localStorage.setItem(AUTO_MEALS_KEY, autoMealsPerDay.value.toString())
+                    }
+                }
+                const decreaseAutoMeals = () => {
+                    if (autoMealsPerDay.value > 0) {
+                        autoMealsPerDay.value--
+                        localStorage.setItem(AUTO_MEALS_KEY, autoMealsPerDay.value.toString())
+                    }
+                }
+
+                // Compute how many meals per slot: e.g. 5 meals across 3 slots => [2, 2, 1]
+                const mealsPerSlot = computed(() => {
+                    const total = autoMealsPerDay.value
+                    if (total === 0) return [0, 0, 0]
+                    const base = Math.floor(total / FEED_SLOTS.length)
+                    const remainder = total % FEED_SLOTS.length
+                    return FEED_SLOTS.map((_, i) => base + (i < remainder ? 1 : 0))
+                })
+
+                const autoScheduleText = computed(() => {
+                    return mealsPerSlot.value
+                        .map((count, i) => count > 0 ? `${FEED_SLOTS[i]}:00 ×${count}` : null)
+                        .filter(Boolean)
+                        .join('  •  ')
+                })
+
+                // Get today's date string for tracking fed slots
+                const todayKey = () => new Date().toISOString().slice(0, 10)
+
+                const getFedSlots = () => {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(AUTO_FED_KEY) || '{}')
+                        return data[todayKey()] || []
+                    } catch { return [] }
+                }
+
+                const markSlotFed = (slotHour) => {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(AUTO_FED_KEY) || '{}')
+                        const today = todayKey()
+                        for (const key of Object.keys(data)) {
+                            if (key !== today) delete data[key]
+                        }
+                        if (!data[today]) data[today] = []
+                        if (!data[today].includes(slotHour)) data[today].push(slotHour)
+                        localStorage.setItem(AUTO_FED_KEY, JSON.stringify(data))
+                    } catch {}
+                }
+
+                // Auto feed: fire meals for a slot
+                const autoFeedSlot = async (slotIndex, count) => {
+                    console.log(`Auto feeding ${count} meal(s) at slot ${FEED_SLOTS[slotIndex]}:00`)
+                    for (let i = 0; i < count; i++) {
+                        mealPending.value += 1
+                        try {
+                            await sleep(1000)
+                            await fetch(mealUrl)
+                        } catch (error) {
+                            console.error('Error auto feeding:', error)
+                        }
+                        mealPending.value -= 1
+                        if (i < count - 1) await sleep(2000)
+                    }
+                }
+
+                // Check every 30s if we need to auto-feed
+                const checkAutoFeed = () => {
+                    const total = autoMealsPerDay.value
+                    if (total === 0) return
+                    const nowDate = new Date()
+                    const currentHour = nowDate.getHours()
+                    const currentMinute = nowDate.getMinutes()
+                    const fedSlots = getFedSlots()
+                    const slots = mealsPerSlot.value
+
+                    FEED_SLOTS.forEach((slotHour, i) => {
+                        if (slots[i] > 0 && currentHour === slotHour && currentMinute === 0 && !fedSlots.includes(slotHour)) {
+                            markSlotFed(slotHour)
+                            autoFeedSlot(i, slots[i])
+                        }
+                    })
+                }
+
+                setInterval(checkAutoFeed, 30 * 1000)
+                setTimeout(checkAutoFeed, 2000)
 
                 // Helper function to get stored date
                 const getStoredDate = (key) => {
@@ -393,6 +573,10 @@
                     snackPending,
                     feedMeal,
                     feedSnack,
+                    autoMealsPerDay,
+                    increaseAutoMeals,
+                    decreaseAutoMeals,
+                    autoScheduleText,
                     waterDaysRemaining,
                     waterStatus,
                     waterStatusText,
