@@ -43,35 +43,7 @@
             padding: 20px;
         }
 
-        .row {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-        }
 
-        .square-button {
-            width: 232px;
-            height: 232px;
-            color: white;
-            border: none;
-            margin: 12px;
-            font-size: 30px;
-            font-weight: bold;
-            touch-action: manipulation;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        .square-button:active {
-            background-color: #e5e5e5;
-            outline: none;
-            color: grey;
-        }
-
-        .square-button:hover {
-            transform: scale(1.02);
-        }
 
         /* Water Tank Reminder Styles */
         .water-reminder {
@@ -182,23 +154,81 @@
             transform: scale(0.98);
         }
 
-        .section-title {
-            font-size: 32px;
-            color: #333;
+        /* Dry Feeder Card Styles */
+        .feeder-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            border-radius: 30px;
+            background: linear-gradient(145deg, #fcab65 0%, #f59a4d 100%);
+            box-shadow: 0 8px 32px rgba(252, 171, 101, 0.3);
+            min-width: 320px;
+        }
+
+        .feeder-icon {
+            font-size: 48px;
             margin-bottom: 10px;
+            animation: bounce 2s ease-in-out infinite;
         }
 
-        .section-subtitle {
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .feeder-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .feeder-status {
             font-size: 20px;
-            color: #666;
-            margin-bottom: 20px;
+            color: white;
+            margin-bottom: 25px;
+            opacity: 0.95;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
 
-        hr {
-            width: 80%;
-            border: none;
-            border-top: 1px solid #e0e0e0;
-            margin: 15px 0;
+        .feeder-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .feeder-button {
+            padding: 18px 28px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            background: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .feeder-button:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(1.05);
+        }
+
+        .feeder-button:active {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(0.98);
         }
     </style>
 </head>
@@ -210,19 +240,15 @@
         <div class="main-container">
             <!-- Left Panel: Dry Feeder -->
             <div class="left-panel">
-                <div class="row">
-                    <h1 class="section-title">🍽️ Dry Feeder</h1>
-                </div>
-                <div class="row">
-                    <h3 class="section-subtitle">{{ mealPending + snackPending == 0 ? 'Tap to feed Momo' : `Feeding Momo
-                        ${mealPending} meal(s) and ${snackPending} snack(s)...` }}</h3>
-                </div>
-                <div class="row">
-                    <button class="square-button" style="background-color: #fcab65; border-radius: 30px;"
-                        @click="feedMeal">Dry
-                        food</button>
-                    <button class="square-button" style="background-color: #7b7bf8; border-radius: 30px;"
-                        @click="feedSnack">Mixed snack</button>
+                <div class="feeder-card">
+                    <div class="feeder-icon">🍽️</div>
+                    <div class="feeder-title">Dry Feeder</div>
+                    <div class="feeder-status">{{ mealPending + snackPending == 0 ? 'Tap to feed Momo' : `Feeding Momo
+                        ${mealPending} meal(s) and ${snackPending} snack(s)...` }}</div>
+                    <div class="feeder-buttons">
+                        <button class="feeder-button" @click="feedMeal">🥣 Dry Food</button>
+                        <button class="feeder-button" @click="feedSnack">🍬 Mixed Snack</button>
+                    </div>
                 </div>
             </div>
 
