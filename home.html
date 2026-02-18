@@ -384,7 +384,7 @@
         // Auto feed constants
         const AUTO_MEALS_KEY = 'autoMealsPerDay'
         const AUTO_FED_KEY = 'autoFedSlots'
-        const FEED_SLOTS = [{h:7,m:58}, {h:12,m:58}, {h:19,m:58}]  // fixed time slots
+        const FEED_SLOTS = [{ h: 7, m: 58 }, { h: 12, m: 58 }, { h: 19, m: 58 }]  // fixed time slots
 
         createApp({
             setup() {
@@ -443,7 +443,7 @@
 
                 const autoScheduleText = computed(() => {
                     return mealsPerSlot.value
-                        .map((count, i) => count > 0 ? `${FEED_SLOTS[i].h}:${String(FEED_SLOTS[i].m).padStart(2,'0')} ×${count}` : null)
+                        .map((count, i) => count > 0 ? `${FEED_SLOTS[i].h}:${String(FEED_SLOTS[i].m).padStart(2, '0')} ×${count}` : null)
                         .filter(Boolean)
                         .join('  •  ')
                 })
@@ -474,7 +474,7 @@
                 // Auto feed: fire meals for a slot
                 const autoFeedSlot = async (slotIndex, count) => {
                     const s = FEED_SLOTS[slotIndex]
-                    console.log(`Auto feeding ${count} meal(s) at slot ${s.h}:${String(s.m).padStart(2,'0')}`)
+                    console.log(`Auto feeding ${count} meal(s) at slot ${s.h}:${String(s.m).padStart(2, '0')}`)
                     for (let i = 0; i < count; i++) {
                         mealPending.value += 1
                         try {
