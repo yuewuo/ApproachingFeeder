@@ -384,7 +384,7 @@
         // Auto feed constants
         const AUTO_MEALS_KEY = 'autoMealsPerDay'
         const AUTO_FED_KEY = 'autoFedSlots'
-        const FEED_SLOTS = [8, 13, 20]  // fixed time slots: 8:00, 13:00, 20:00
+        const FEED_SLOTS = [{h:7,m:58}, {h:12,m:58}, {h:19,m:58}]  // fixed time slots
 
         createApp({
             setup() {
@@ -443,7 +443,7 @@
 
                 const autoScheduleText = computed(() => {
                     return mealsPerSlot.value
-                        .map((count, i) => count > 0 ? `${FEED_SLOTS[i]}:00 ×${count}` : null)
+                        .map((count, i) => count > 0 ? `${FEED_SLOTS[i].h}:${String(FEED_SLOTS[i].m).padStart(2,'0')} ×${count}` : null)
                         .filter(Boolean)
                         .join('  •  ')
                 })
@@ -458,7 +458,7 @@
                     } catch { return [] }
                 }
 
-                const markSlotFed = (slotHour) => {
+                const markSlotFed = (slotKey) => {
                     try {
                         const data = JSON.parse(localStorage.getItem(AUTO_FED_KEY) || '{}')
                         const today = todayKey()
@@ -466,14 +466,15 @@
                             if (key !== today) delete data[key]
                         }
                         if (!data[today]) data[today] = []
-                        if (!data[today].includes(slotHour)) data[today].push(slotHour)
+                        if (!data[today].includes(slotKey)) data[today].push(slotKey)
                         localStorage.setItem(AUTO_FED_KEY, JSON.stringify(data))
                     } catch { }
                 }
 
                 // Auto feed: fire meals for a slot
                 const autoFeedSlot = async (slotIndex, count) => {
-                    console.log(`Auto feeding ${count} meal(s) at slot ${FEED_SLOTS[slotIndex]}:00`)
+                    const s = FEED_SLOTS[slotIndex]
+                    console.log(`Auto feeding ${count} meal(s) at slot ${s.h}:${String(s.m).padStart(2,'0')}`)
                     for (let i = 0; i < count; i++) {
                         mealPending.value += 1
                         try {
@@ -497,9 +498,10 @@
                     const fedSlots = getFedSlots()
                     const slots = mealsPerSlot.value
 
-                    FEED_SLOTS.forEach((slotHour, i) => {
-                        if (slots[i] > 0 && currentHour === slotHour && currentMinute === 0 && !fedSlots.includes(slotHour)) {
-                            markSlotFed(slotHour)
+                    FEED_SLOTS.forEach((slot, i) => {
+                        const slotKey = `${slot.h}:${slot.m}`
+                        if (slots[i] > 0 && currentHour === slot.h && currentMinute === slot.m && !fedSlots.includes(slotKey)) {
+                            markSlotFed(slotKey)
                             autoFeedSlot(i, slots[i])
                         }
                     })
