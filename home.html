@@ -27,7 +27,7 @@
 
         .main-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 3fr;
             height: 100%;
             height: 100dvh;
             width: 100vw;
@@ -43,12 +43,13 @@
         }
 
         .right-panel {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-evenly;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
             align-items: center;
-            padding: 15px;
-            gap: 0;
+            justify-items: center;
         }
 
 
@@ -59,10 +60,11 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px 30px;
-            border-radius: 25px;
+            padding: 15px 20px;
+            border-radius: 20px;
             transition: all 0.5s ease;
-            min-width: 260px;
+            width: 100%;
+            max-width: 280px;
         }
 
         .reminder-card.ok {
@@ -97,6 +99,28 @@
             animation: pulse 2.5s ease-in-out infinite;
         }
 
+        .reminder-card.combing.ok {
+            background: linear-gradient(145deg, #c4a8e0 0%, #b094d0 100%);
+            box-shadow: 0 8px 32px rgba(196, 168, 224, 0.3);
+        }
+
+        .reminder-card.combing.warning {
+            background: linear-gradient(145deg, #f0c674 0%, #e6b85c 100%);
+            box-shadow: 0 8px 32px rgba(240, 198, 116, 0.4);
+        }
+
+        .reminder-card.combing.overdue {
+            background: linear-gradient(145deg, #ff7b7b 0%, #f06565 100%);
+            box-shadow: 0 8px 32px rgba(255, 123, 123, 0.4);
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        .reminder-card.placeholder {
+            background: linear-gradient(145deg, #ddd 0%, #ccc 100%);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+            opacity: 0.5;
+        }
+
         @keyframes pulse {
 
             0%,
@@ -112,21 +136,21 @@
         }
 
         .reminder-icon {
-            font-size: 32px;
-            margin-bottom: 4px;
+            font-size: 28px;
+            margin-bottom: 2px;
             animation: bounce 3s ease-in-out infinite;
         }
 
         .reminder-title {
-            font-size: 20px;
+            font-size: 17px;
             font-weight: bold;
             color: white;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .reminder-days {
-            font-size: 44px;
+            font-size: 36px;
             font-weight: bold;
             color: white;
             line-height: 1;
@@ -134,17 +158,17 @@
         }
 
         .reminder-status {
-            font-size: 16px;
+            font-size: 14px;
             color: white;
-            margin-top: 4px;
+            margin-top: 2px;
             opacity: 0.95;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .reminder-button {
-            margin-top: 12px;
-            padding: 10px 22px;
-            font-size: 16px;
+            margin-top: 8px;
+            padding: 8px 18px;
+            font-size: 14px;
             font-weight: bold;
             color: white;
             background: rgba(255, 255, 255, 0.25);
@@ -326,8 +350,8 @@
                     <div class="feeder-status">{{ mealPending + snackPending == 0 ? 'Tap to feed Momo' : `Feeding Momo
                         ${mealPending} meal(s) and ${snackPending} snack(s)...` }}</div>
                     <div class="feeder-buttons">
-                        <button class="feeder-button" @click="feedMeal">🥣 Dry Food</button>
-                        <button class="feeder-button" @click="feedSnack">🍬 Mixed Snack</button>
+                        <button class="feeder-button" @click="feedMeal">Dry Food</button>
+                        <button class="feeder-button" @click="feedSnack">Mixed Snack</button>
                     </div>
                 </div>
                 <div class="auto-feed-section">
@@ -363,6 +387,17 @@
                     <div class="reminder-status">{{ toiletStatusText }}</div>
                     <button class="reminder-button" @click="markToiletCleaned">✓ Cleaned Today</button>
                 </div>
+                <div class="reminder-card combing" :class="combingStatus">
+                    <div class="reminder-icon">🪥</div>
+                    <div class="reminder-title">Combing</div>
+                    <div class="reminder-days">{{ Math.abs(combingDaysRemaining) }}</div>
+                    <div class="reminder-status">{{ combingStatusText }}</div>
+                    <button class="reminder-button" @click="markCombed">✓ Combed Today</button>
+                </div>
+                <div class="reminder-card placeholder">
+                    <div class="reminder-icon">➕</div>
+                    <div class="reminder-title">Coming Soon</div>
+                </div>
             </div>
         </div>
     </div>
@@ -380,6 +415,8 @@
         const TOILET_CLEAN_INTERVAL_DAYS = 7
         const WATER_STORAGE_KEY = 'lastWaterChange'
         const TOILET_STORAGE_KEY = 'lastToiletClean'
+        const COMBING_STORAGE_KEY = 'lastCombing'
+        const COMBING_INTERVAL_DAYS = 1
 
         // Auto feed constants
         const AUTO_MEALS_KEY = 'autoMealsPerDay'
@@ -570,6 +607,17 @@
                     localStorage.setItem(TOILET_STORAGE_KEY, nowTs.toString())
                 }
 
+                // Combing reminder
+                const lastCombing = ref(getStoredDate(COMBING_STORAGE_KEY))
+                const combingDaysRemaining = computed(() => calcDaysRemaining(lastCombing.value, COMBING_INTERVAL_DAYS, now.value))
+                const combingStatus = computed(() => getStatus(combingDaysRemaining.value))
+                const combingStatusText = computed(() => getStatusText(combingDaysRemaining.value, 'Comb'))
+                const markCombed = () => {
+                    const nowTs = Date.now()
+                    lastCombing.value = nowTs
+                    localStorage.setItem(COMBING_STORAGE_KEY, nowTs.toString())
+                }
+
                 return {
                     mealPending,
                     snackPending,
@@ -586,7 +634,11 @@
                     toiletDaysRemaining,
                     toiletStatus,
                     toiletStatusText,
-                    markToiletCleaned
+                    markToiletCleaned,
+                    combingDaysRemaining,
+                    combingStatus,
+                    combingStatusText,
+                    markCombed
                 }
             }
         }).mount('#app')
